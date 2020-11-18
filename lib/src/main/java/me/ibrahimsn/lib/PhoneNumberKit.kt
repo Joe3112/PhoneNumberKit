@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.text.InputFilter
 import android.text.InputType
-import android.util.Log
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -125,16 +124,13 @@ class PhoneNumberKit(private val context: Context) {
             }
 
             core.formatPhoneNumber(core.getExampleNumber(country.iso2))?.let { number ->
-
                 val formatNumber = if (formatWithCountryCode) {
                     number
                 } else {
                     number.removePrefix("+${country.countryCode}$CHAR_SPACE")
                 }
-
                 input?.editText?.filters = arrayOf(InputFilter.LengthFilter(formatNumber.length))
                 format = createNumberFormat(formatNumber)
-                Log.d("formatPhoneNumber", format)
                 applyFormat()
             }
         }
