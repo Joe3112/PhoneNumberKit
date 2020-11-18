@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.text.InputFilter
 import android.text.InputType
+import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputLayout
@@ -23,6 +24,12 @@ class PhoneNumberKit(private val context: Context) {
     private val core = Core(context)
 
     private var input: TextInputLayout? = null
+        set(value) {
+            field = value
+            editText = value?.editText
+        }
+
+    private var editText: EditText? = null
 
     private var country: Country? = null
 
@@ -31,11 +38,11 @@ class PhoneNumberKit(private val context: Context) {
     private var hasManualCountry = false
 
     private var rawInput: CharSequence?
-        get() = input?.editText?.text
+        get() = editText?.text
         set(value) {
             input?.tag = Constants.VIEW_TAG
-            input?.editText?.clear()
-            input?.editText?.append(value)
+            editText?.clear()
+            editText?.append(value)
             input?.tag = null
         }
 
@@ -119,6 +126,14 @@ class PhoneNumberKit(private val context: Context) {
         }
     }
 
+    fun updateCountry(countryCode: Int) {
+        setCountry(getCountry(countryCode), isManual = true)
+    }
+
+    fun updateCountry(countryIso2: String) {
+        setCountry(getCountry(countryIso2), isManual = true)
+    }
+
     // Creates a pattern like +90 506 555 55 55 -> +0010001000100100
     private fun createNumberFormat(number: String): String {
         var format = number.replace("(\\d)".toRegex(), KEY_DIGIT.toString())
@@ -144,6 +159,19 @@ class PhoneNumberKit(private val context: Context) {
     }
 
     /**
+     * Attaches to EditText
+     */
+    fun attachToInput(input: EditText, defaultCountry: Int) {
+        this.input = TextInputLayout(context)
+        input.inputType = InputType.TYPE_CLASS_PHONE
+        input.addTextChangedListener(textWatcher)
+
+        // Set initial country
+        setCountry(getCountry(defaultCountry) ?: Countries.list[0])
+        rawInput = country?.countryCode?.prependPlus()
+    }
+
+    /**
      * Attaches to textInputLayout
      */
     fun attachToInput(input: TextInputLayout, countryIso2: String) {
@@ -154,6 +182,20 @@ class PhoneNumberKit(private val context: Context) {
         input.isStartIconVisible = true
         input.isStartIconCheckable = true
         input.setStartIconTintList(null)
+
+        // Set initial country
+        setCountry(getCountry(countryIso2.trim().toLowerCase(Locale.ENGLISH)) ?: Countries.list[0])
+        rawInput = country?.countryCode?.prependPlus()
+    }
+
+    /**
+     * Attaches to EditText
+     */
+    fun attachToInput(input: EditText, countryIso2: String) {
+        this.input = TextInputLayout(context)
+        editText = input
+        input.inputType = InputType.TYPE_CLASS_PHONE
+        input.addTextChangedListener(textWatcher)
 
         // Set initial country
         setCountry(getCountry(countryIso2.trim().toLowerCase(Locale.ENGLISH)) ?: Countries.list[0])
