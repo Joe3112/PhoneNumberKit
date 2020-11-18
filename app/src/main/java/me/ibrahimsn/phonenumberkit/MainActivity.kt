@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
         // Setup country code picker optionally
         phoneNumberKit.setupCountryPicker(this, searchEnabled = true)
 
-        // phoneNumberKit.attachToInput(editTextOnly,"us")
+        // phoneNumberKit.attachToInput(editTextOnly,"ua", false)
 
         // Provides example phone number for given country iso2 code
         val exampleNumber = phoneNumberKit.getExampleNumber("tr")

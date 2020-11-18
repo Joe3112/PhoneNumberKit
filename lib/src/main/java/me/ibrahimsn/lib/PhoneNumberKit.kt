@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.text.InputFilter
 import android.text.InputType
+import android.util.Log
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -36,6 +37,7 @@ class PhoneNumberKit(private val context: Context) {
     private var format: String = ""
 
     private var hasManualCountry = false
+    private var formatWithCountryCode = true
 
     private var rawInput: CharSequence?
         get() = editText?.text
@@ -54,10 +56,12 @@ class PhoneNumberKit(private val context: Context) {
                     country?.iso2
                 )
 
-                // Update country flag and mask if detected as a different one
-                if (country == null || country?.countryCode != parsedNumber?.countryCode) {
-                    if (!hasManualCountry) {
-                        setCountry(getCountry(parsedNumber?.countryCode))
+                if (formatWithCountryCode) {
+                    // Update country flag and mask if detected as a different one
+                    if (country == null || country?.countryCode != parsedNumber?.countryCode) {
+                        if (!hasManualCountry) {
+                            setCountry(getCountry(parsedNumber?.countryCode))
+                        }
                     }
                 }
 
@@ -73,8 +77,10 @@ class PhoneNumberKit(private val context: Context) {
             // Clear all of the non-digit characters from the phone number
             val pureNumber = raw.filter { i -> i.isDigit() }.toMutableList()
 
-            // Add plus to beginning of the number
-            pureNumber.add(0, CHAR_PLUS)
+            if (formatWithCountryCode) {
+                // Add plus to beginning of the number
+                pureNumber.add(0, CHAR_PLUS)
+            }
 
             for (i in format.indices) {
                 if (pureNumber.size > i) {
@@ -119,19 +125,27 @@ class PhoneNumberKit(private val context: Context) {
             }
 
             core.formatPhoneNumber(core.getExampleNumber(country.iso2))?.let { number ->
-                input?.editText?.filters = arrayOf(InputFilter.LengthFilter(number.length))
-                format = createNumberFormat(number)
+
+                val formatNumber = if (formatWithCountryCode) {
+                    number
+                } else {
+                    number.removePrefix("+${country.countryCode}$CHAR_SPACE")
+                }
+
+                input?.editText?.filters = arrayOf(InputFilter.LengthFilter(formatNumber.length))
+                format = createNumberFormat(formatNumber)
+                Log.d("formatPhoneNumber", format)
                 applyFormat()
             }
         }
     }
 
     fun updateCountry(countryCode: Int) {
-        setCountry(getCountry(countryCode), isManual = true)
+        setCountry(getCountry(countryCode))
     }
 
     fun updateCountry(countryIso2: String) {
-        setCountry(getCountry(countryIso2), isManual = true)
+        setCountry(getCountry(countryIso2))
     }
 
     // Creates a pattern like +90 506 555 55 55 -> +0010001000100100
@@ -161,14 +175,18 @@ class PhoneNumberKit(private val context: Context) {
     /**
      * Attaches to EditText
      */
-    fun attachToInput(input: EditText, defaultCountry: Int) {
+    fun attachToInput(input: EditText, defaultCountry: Int, formatWithCountryCode: Boolean = true) {
         this.input = TextInputLayout(context)
+        editText = input
+        this.formatWithCountryCode = formatWithCountryCode
         input.inputType = InputType.TYPE_CLASS_PHONE
         input.addTextChangedListener(textWatcher)
 
         // Set initial country
         setCountry(getCountry(defaultCountry) ?: Countries.list[0])
-        rawInput = country?.countryCode?.prependPlus()
+        if (formatWithCountryCode) {
+            rawInput = country?.countryCode?.prependPlus()
+        }
     }
 
     /**
@@ -191,15 +209,18 @@ class PhoneNumberKit(private val context: Context) {
     /**
      * Attaches to EditText
      */
-    fun attachToInput(input: EditText, countryIso2: String) {
+    fun attachToInput(input: EditText, countryIso2: String, formatWithCountryCode: Boolean = true) {
         this.input = TextInputLayout(context)
         editText = input
+        this.formatWithCountryCode = formatWithCountryCode
         input.inputType = InputType.TYPE_CLASS_PHONE
         input.addTextChangedListener(textWatcher)
 
         // Set initial country
         setCountry(getCountry(countryIso2.trim().toLowerCase(Locale.ENGLISH)) ?: Countries.list[0])
-        rawInput = country?.countryCode?.prependPlus()
+        if (formatWithCountryCode) {
+            rawInput = country?.countryCode?.prependPlus()
+        }
     }
 
     /**
