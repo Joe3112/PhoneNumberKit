@@ -42,8 +42,7 @@ class PhoneNumberKit(private val context: Context) {
     private var hasManualCountry = false
     private var formatWithCountryCode = true
 
-    private var validNumberCallback: (() -> Unit)? = null
-    private var invalidNumberCallback: (() -> Unit)? = null
+    private var validNumberCallback: ((isValid: Boolean) -> Unit)? = null
 
     private var rawInput: CharSequence?
         get() = editText?.text
@@ -76,10 +75,11 @@ class PhoneNumberKit(private val context: Context) {
                 }
 
                 parsedNumber?.rawInput?.also { number ->
-                    if (number.length > format.length) {
-                        invalidNumberCallback?.invoke()
-                    } else if (number.length == format.length) {
-                        checkValidNumber(number)
+                    when {
+                        number.length > format.length -> validNumberCallback?.invoke(false)
+                        else -> if (core.isValidPhoneNumber(number, country?.iso2)) {
+                            validNumberCallback?.invoke(true)
+                        }
                     }
                 }
             }
@@ -151,11 +151,7 @@ class PhoneNumberKit(private val context: Context) {
         }
     }
 
-    fun setInvalidNumberCallback(callback: () -> Unit) {
-        invalidNumberCallback = callback
-    }
-
-    fun setValidNumberCallback(callback: () -> Unit) {
+    fun setValidNumberCallback(callback: (Boolean) -> Unit) {
         validNumberCallback = callback
     }
 
@@ -165,12 +161,6 @@ class PhoneNumberKit(private val context: Context) {
 
     fun updateCountry(countryIso2: String) {
         setCountry(getCountry(countryIso2))
-    }
-
-    private fun checkValidNumber(number: String) {
-        if (core.isValidPhoneNumber(number, country?.iso2)) {
-            validNumberCallback?.invoke()
-        }
     }
 
     // Creates a pattern like +90 506 555 55 55 -> +0010001000100100

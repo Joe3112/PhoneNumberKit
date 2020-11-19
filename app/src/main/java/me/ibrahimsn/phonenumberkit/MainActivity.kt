@@ -2,7 +2,6 @@ package me.ibrahimsn.phonenumberkit
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.widget.addTextChangedListener
 import kotlinx.android.synthetic.main.activity_main.*
 import me.ibrahimsn.lib.PhoneNumberKit
 
@@ -14,19 +13,19 @@ class MainActivity : AppCompatActivity() {
         val phoneNumberKit = PhoneNumberKit(this)
 
         // To attach an editTextLayout
-        phoneNumberKit.attachToInput(textField, 1)
+//        phoneNumberKit.attachToInput(textField, 1)
 
         // Setup country code picker optionally
         phoneNumberKit.setupCountryPicker(this, searchEnabled = true)
 
-         phoneNumberKit.attachToInput(editTextOnly, "ua", true)
+        phoneNumberKit.attachToInput(editTextOnly, "ua", false)
 
-        phoneNumberKit.setInvalidNumberCallback {
-            editTextOnly.error = "Invalid number!"
-        }
-
-        phoneNumberKit.setValidNumberCallback {
-            editTextOnly.error = "Number is Valid! :D"
+        phoneNumberKit.setValidNumberCallback { isValid ->
+            if (isValid) {
+                editTextOnly.error = "Number valid! :D"
+            } else {
+                editTextOnly.error = "Number invalid! :("
+            }
         }
 
         // Provides example phone number for given country iso2 code
