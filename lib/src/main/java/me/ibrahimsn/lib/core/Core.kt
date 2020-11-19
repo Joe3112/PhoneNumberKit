@@ -1,16 +1,29 @@
 package me.ibrahimsn.lib.core
 
-import android.content.Context
 import io.michaelrocks.libphonenumber.android.NumberParseException
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import io.michaelrocks.libphonenumber.android.Phonenumber
-import me.ibrahimsn.lib.util.prependPlus
-import me.ibrahimsn.lib.util.startsWithPlus
 import java.util.*
 
-class Core(context: Context) {
+class Core(
+    val phoneUtil: PhoneNumberUtil
+) {
 
-    private var phoneUtil: PhoneNumberUtil = PhoneNumberUtil.createInstance(context)
+    fun isValidPhoneNumber(
+        number: String?,
+        defaultRegion: String?
+    ): Boolean {
+        return try {
+            phoneUtil.isValidNumber(
+                phoneUtil.parseAndKeepRawInput(
+                    number,
+                    defaultRegion?.toUpperCase(Locale.ROOT)
+                )
+            )
+        } catch (e: NumberParseException) {
+            false
+        }
+    }
 
     fun parsePhoneNumber(
         number: String?,
@@ -18,7 +31,7 @@ class Core(context: Context) {
     ): Phonenumber.PhoneNumber? {
         return try {
             phoneUtil.parseAndKeepRawInput(
-                if (number.startsWithPlus()) number else number.prependPlus(),
+                number,
                 defaultRegion?.toUpperCase(Locale.ROOT)
             )
         } catch (e: NumberParseException) {

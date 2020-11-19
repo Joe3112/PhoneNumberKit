@@ -8,6 +8,7 @@ import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputLayout
+import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import me.ibrahimsn.lib.Constants.CHAR_DASH
 import me.ibrahimsn.lib.Constants.CHAR_PLUS
 import me.ibrahimsn.lib.Constants.CHAR_SPACE
@@ -21,7 +22,10 @@ import java.util.*
 
 class PhoneNumberKit(private val context: Context) {
 
-    private val core = Core(context)
+    private val core = Core(PhoneNumberUtil.createInstance(context))
+
+    val phoneNumberUtil: PhoneNumberUtil
+        get() = core.phoneUtil
 
     private var input: TextInputLayout? = null
         set(value) {
@@ -37,6 +41,9 @@ class PhoneNumberKit(private val context: Context) {
 
     private var hasManualCountry = false
     private var formatWithCountryCode = true
+
+    private var validNumberCallback: (() -> Unit)? = null
+    private var invalidNumberCallback: (() -> Unit)? = null
 
     private var rawInput: CharSequence?
         get() = editText?.text
@@ -66,6 +73,14 @@ class PhoneNumberKit(private val context: Context) {
 
                 if (count != 0) {
                     applyFormat()
+                }
+
+                parsedNumber?.rawInput?.also { number ->
+                    if (number.length > format.length) {
+                        invalidNumberCallback?.invoke()
+                    } else if (number.length == format.length) {
+                        checkValidNumber(number)
+                    }
                 }
             }
         }
@@ -136,12 +151,26 @@ class PhoneNumberKit(private val context: Context) {
         }
     }
 
+    fun setInvalidNumberCallback(callback: () -> Unit) {
+        invalidNumberCallback = callback
+    }
+
+    fun setValidNumberCallback(callback: () -> Unit) {
+        validNumberCallback = callback
+    }
+
     fun updateCountry(countryCode: Int) {
         setCountry(getCountry(countryCode))
     }
 
     fun updateCountry(countryIso2: String) {
         setCountry(getCountry(countryIso2))
+    }
+
+    private fun checkValidNumber(number: String) {
+        if (core.isValidPhoneNumber(number, country?.iso2)) {
+            validNumberCallback?.invoke()
+        }
     }
 
     // Creates a pattern like +90 506 555 55 55 -> +0010001000100100
@@ -311,7 +340,7 @@ class PhoneNumberKit(private val context: Context) {
     /**
      * Provides country for given country iso2
      */
-    private fun getCountry(countryIso2: String?): Country? {
+    fun getCountry(countryIso2: String?): Country? {
         for (country in Countries.list) {
             if (country.iso2 == countryIso2) {
                 return country
